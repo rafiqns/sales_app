@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dua Kelinci Sales Pulse</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="logo-dot">DK</div>
+        <div>
+          <h1>Sales Pulse Dashboard</h1>
+          <p class="subtitle">Regional, Brand &amp; Outlet Performance · <span id="source-name">sales.csv</span></p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <select id="filter-month" aria-label="Filter by month">
+          <option value="all">All Months</option>
+        </select>
+        <select id="filter-region" aria-label="Filter by region">
+          <option value="all">All Regions</option>
+        </select>
+        <select id="filter-brand" aria-label="Filter by brand">
+          <option value="all">All Brands</option>
+        </select>
+        <label class="btn btn-secondary upload-btn">
+          Upload CSV
+          <input type="file" id="csv-upload" accept=".csv" hidden />
+        </label>
+        <button id="btn-reset" class="btn btn-ghost" title="Reset filters">Reset</button>
+      </div>
+    </header>
+
+    <!-- Data Quality Banner -->
+    <section class="audit-banner" id="audit-banner">
+      <div class="audit-summary">
+        <span class="badge badge-info">Auto-Cleaned ERP Data</span>
+        <span id="audit-headline">Loading data quality report...</span>
+      </div>
+      <button id="btn-toggle-audit" class="btn-link">View details</button>
+      <ul id="audit-details" class="audit-details hidden"></ul>
+    </section>
+
+    <!-- KPI Cards -->
+    <section class="kpi-grid" id="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Net Sales (IDR)</span>
+        <strong class="kpi-value" id="kpi-net">-</strong>
+        <span class="kpi-sub" id="kpi-mom">-</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Volume Sold</span>
+        <strong class="kpi-value" id="kpi-cartons">-</strong>
+        <span class="kpi-sub" id="kpi-invoices">-</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Active Outlets</span>
+        <strong class="kpi-value" id="kpi-outlets">-</strong>
+        <span class="kpi-sub" id="kpi-aov">-</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Effective Discount</span>
+        <strong class="kpi-value" id="kpi-discount">-</strong>
+        <span class="kpi-sub" id="kpi-gross">-</span>
+      </div>
+    </section>
+
+    <!-- Telegram Manager Digest -->
+    <section class="card telegram-card">
+      <div class="card-header">
+        <div>
+          <h2>Telegram Manager Digest</h2>
+          <p class="card-sub">One-paragraph summary ready to read on a phone in Telegram</p>
+        </div>
+        <div class="telegram-actions">
+          <div class="lang-toggle" role="group" aria-label="Summary language">
+            <button id="lang-id" class="toggle-btn active">ID</button>
+            <button id="lang-en" class="toggle-btn">EN</button>
+          </div>
+          <button id="btn-llm" class="btn btn-secondary hidden">Polish with AI</button>
+          <button id="btn-send-tg" class="btn btn-secondary hidden">Send to Telegram</button>
+          <button id="btn-copy" class="btn btn-primary">Copy for Telegram</button>
+        </div>
+      </div>
+
+      <div class="telegram-bubble">
+        <div class="telegram-meta">
+          <span class="tg-bot-name">Sales Pulse Bot</span>
+          <span class="tg-source-badge" id="tg-source">Grounded Summary</span>
+        </div>
+        <p id="telegram-text" class="telegram-text">Loading summary...</p>
+        <div class="telegram-footer">
+          <span id="copy-feedback" class="copy-feedback"></span>
+          <span class="tg-time">06:00 ✓✓</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Region & Brand Breakdown -->
+    <section class="two-col">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Sales by Region</h2>
+            <p class="card-sub">Click a region to filter the dashboard</p>
+          </div>
+        </div>
+        <div id="region-bars" class="bar-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Sales by Brand</h2>
+            <p class="card-sub">Click a brand to filter the dashboard</p>
+          </div>
+        </div>
+        <div id="brand-bars" class="bar-list"></div>
+      </div>
+    </section>
+
+    <!-- 5 Weakest Outlets -->
+    <section class="card alert-card">
+      <div class="card-header">
+        <div>
+          <h2>5 Weakest Outlets (Flagged for Follow-Up)</h2>
+          <p class="card-sub">Grouped strictly by unique <code>outlet_id</code> with diagnostic reason vs peer outlet type</p>
+        </div>
+        <div class="outlet-mode-wrap">
+          <div class="lang-toggle" role="group" aria-label="Flagging mode">
+            <button id="mode-lowest" class="toggle-btn active">Lowest Sales</button>
+            <button id="mode-drops" class="toggle-btn">Sharpest MoM Drop</button>
+          </div>
+          <span class="badge badge-danger">Action Required</span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Outlet</th>
+              <th>Region / Branch</th>
+              <th>Type</th>
+              <th>Salesman</th>
+              <th>Why Flagged</th>
+              <th class="num">Inv</th>
+              <th class="num" id="th-prev">Prev</th>
+              <th class="num" id="th-curr">Curr</th>
+              <th class="num">MoM</th>
+              <th class="num">Net Sales</th>
+            </tr>
+          </thead>
+          <tbody id="weakest-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Region x Brand Matrix -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2>Region × Brand Sales Matrix</h2>
+          <p class="card-sub">Net sales (IDR) heatmap across regions and brands</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table matrix-table" id="matrix-table"></table>
+      </div>
+    </section>
+
+    <!-- Sales Transactions Table -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2>Detail Transaksi Penjualan</h2>
+          <p class="card-sub" id="tx-subtitle">Semua transaksi bersih sesuai filter aktif (klik kolom untuk mengurutkan)</p>
+        </div>
+        <div class="tx-controls">
+          <input
+            type="date"
+            id="tx-date-from"
+            class="date-input"
+            title="Dari tanggal"
+            aria-label="Dari tanggal"
+          />
+          <span class="card-sub">–</span>
+          <input
+            type="date"
+            id="tx-date-to"
+            class="date-input"
+            title="Sampai tanggal"
+            aria-label="Sampai tanggal"
+          />
+          <input
+            type="search"
+            id="tx-search"
+            class="search-input"
+            placeholder="Cari faktur, outlet, salesman, produk..."
+            aria-label="Cari transaksi"
+          />
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="date">Tanggal <span class="sort-ind">↓</span></th>
+              <th class="sortable" data-sort="invoice_no">No. Faktur <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="outlet_name">Outlet <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="branch">Wilayah / Cabang <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="salesman">Salesman <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="brand">Brand &amp; Produk <span class="sort-ind"></span></th>
+              <th class="num sortable" data-sort="qty_carton">Karton <span class="sort-ind"></span></th>
+              <th class="num sortable" data-sort="net_sales_idr">Penjualan Bersih <span class="sort-ind"></span></th>
+            </tr>
+          </thead>
+          <tbody id="tx-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="pagination-bar">
+        <span id="tx-page-info" class="card-sub">-</span>
+        <div class="pagination-btns">
+          <button id="tx-prev" class="btn btn-secondary">Prev</button>
+          <button id="tx-next" class="btn btn-secondary">Next</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
